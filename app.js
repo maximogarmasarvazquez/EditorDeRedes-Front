@@ -1,6 +1,7 @@
 import { initMap, setMapReferencePoints, addNodeToMap, updateMapWithNodes, referencePoints } from './js/map.js';
 import { nodes, colors, gpsToCanvas } from './js/canvas.js';
-import { getSubestaciones } from './data/data.js';
+import { getSubestaciones, getPostes } from './data/data.js';
+
 // ========================
 // MAPA GLOBAL
 // ========================
@@ -26,12 +27,87 @@ tooltip.add(new Konva.Text({ text: "", fontFamily: "Calibri", fontSize: 14, padd
 layer.add(tooltip);
 
 // ========================
+// FUNCIÓN GENÉRICA PARA DIBUJAR NODOS
+// ========================
+function drawNodes(data, type, color) {
+  data.forEach((item) => {
+    const { latitud, longitud, id_subestacion, id_poste } = item;
+    const pos = gpsToCanvas(latitud, longitud, referencePoints);
+
+    // Validamos coordenadas
+    if (latitud == null || longitud == null) {
+      console.warn("Nodo sin coordenadas:", item);
+      return;
+    }
+
+    // Nodo con ID único para evitar conflictos entre tipos
+    const nodeData = {
+      _id: type + "_" + (item._id || id_subestacion || id_poste),
+      type,
+      lat: latitud,
+      lon: longitud,
+      ubicacion: type === "subestacion" ? item.ubicacion || `Subestación ${id_subestacion}` : undefined,
+      potencia: type === "subestacion" ? item.potencia || "N/A" : undefined,
+      serie: type === "poste" ? item.serie || `Poste ${id_poste}` : undefined,
+      tipo: type === "poste" ? item.tipo ?? "N/A" : undefined,
+    };
+
+    // Círculo Konva
+    const circle = new Konva.Circle({
+      x: pos?.x || 0,
+      y: pos?.y || 0,
+      radius: 8,
+      fill: color,
+      stroke: "black",
+      strokeWidth: 1,
+    });
+
+    // Guardamos nodeData en el círculo
+    circle.data = nodeData;
+
+    // Tooltip dinámico
+    circle.on("mouseover", () => {
+      const d = circle.data;
+      let tooltipText = "";
+
+      if (d.type === "subestacion") {
+        tooltipText = `Ubicación: ${d.ubicacion}\nPotencia: ${d.potencia}\nGPS: ${d.lat.toFixed(6)}, ${d.lon.toFixed(6)}`;
+      } else if (d.type === "poste") {
+        tooltipText = `Serie: ${d.serie}\nTipo: ${d.tipo}\nGPS: ${d.lat.toFixed(6)}, ${d.lon.toFixed(6)}`;
+      }
+
+      tooltip.getText().text(tooltipText);
+      tooltip.position({ x: circle.x() + 10, y: circle.y() - 10 });
+      tooltip.show();
+      layer.draw();
+    });
+
+    circle.on("mouseout", () => {
+      tooltip.hide();
+      layer.draw();
+    });
+
+    // Agregamos círculo a Konva
+    layer.add(circle);
+    nodes.push(circle);
+
+    // Agregamos nodo al mapa Leaflet
+    addNodeToMap(nodeData);
+  });
+
+  layer.draw();
+}
+
+
+// ========================
 // INICIALIZACIÓN
 // ========================
 async function init() {
   try {
     const subestaciones = await getSubestaciones();
-     if (!subestaciones.length) return;
+    const postes = await getPostes();
+
+    if (!subestaciones.length && !postes.length) return;
 
     // Centrar mapa
     const avgLat = subestaciones.reduce((sum, s) => sum + s.latitud, 0) / subestaciones.length;
@@ -40,41 +116,11 @@ async function init() {
     map = initMap(avgLat, avgLon);
     setMapReferencePoints(stage.width(), stage.height());
 
-    // Dibujar subestaciones en canvas y mapa
-    subestaciones.forEach((s) => {
-      const { latitud, longitud, ubicacion, potencia, id_subestacion } = s;
-      const pos = gpsToCanvas(latitud, longitud, referencePoints);
-
-      const circle = new Konva.Circle({
-        x: pos?.x || 0,
-        y: pos?.y || 0,
-        radius: 8,
-        fill: colors.subestacion,
-        stroke: "black",
-        strokeWidth: 1,
-      });
-
-      circle.type = "subestacion";
-      circle.ubicacion = ubicacion || `Subestación ${id_subestacion}`;
-      circle.potencia = potencia || "N/A";
-      circle.lat = latitud;
-      circle.lon = longitud;
-
-      circle.on("mouseover", () => {
-        tooltip.getText().text(`${circle.ubicacion}\nPotencia: ${circle.potencia}\nGPS: ${circle.lat.toFixed(6)}, ${circle.lon.toFixed(6)}`);
-        tooltip.position({ x: circle.x() + 10, y: circle.y() - 10 });
-        tooltip.show();
-        layer.draw();
-      });
-      circle.on("mouseout", () => { tooltip.hide(); layer.draw(); });
-
-      layer.add(circle);
-      nodes.push(circle);
-      addNodeToMap(circle);
-    });
+    // Dibujar nodos
+    drawNodes(subestaciones, "subestacion", colors.subestacion);
+    drawNodes(postes, "poste", colors.poste);
 
     layer.draw();
-
   } catch (err) {
     console.error(err);
   }
@@ -110,5 +156,4 @@ window.addEventListener("resize", () => {
   if (map) map.invalidateSize();
 });
 
-// Exportamos para poder llamarlo desde HTML
 window.switchView = switchView;

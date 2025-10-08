@@ -10,3 +10,15 @@ export async function getSubestaciones() {
     return [];
   }
 }
+
+export async function getPostes() {
+  try {
+    const response = await fetch("http://localhost:5000/postes");
+    if (!response.ok) throw new Error("Error al obtener postes");
+    const subestaciones = await response.json();
+    return subestaciones;
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}

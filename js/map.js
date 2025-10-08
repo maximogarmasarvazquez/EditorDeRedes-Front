@@ -71,11 +71,12 @@ function syncCanvasToMap() {
 }
 
 // ========================
-// FUNCIONES PARA NODOS
+// FUNCIONES PARA NODOS EN LEAFLET
 // ========================
 export function addNodeToMap(node) {
   if (!map) return;
 
+  // Si ya existe, removemos
   if (mapMarkers[node._id]) map.removeLayer(mapMarkers[node._id]);
 
   const marker = L.circleMarker([node.lat, node.lon], {
@@ -85,12 +86,20 @@ export function addNodeToMap(node) {
     fillOpacity: 0.9,
   }).addTo(map);
 
-  marker.bindPopup(
-    `<b>${node.ubicacion}</b><br>Potencia: ${node.potencia}<br>${node.lat.toFixed(6)}, ${node.lon.toFixed(6)}`
-  );
+  // Popup dinámico
+  let popupText = "";
+  if (node.type === "subestacion") {
+    popupText = `<b>${node.ubicacion}</b><br>Potencia: ${node.potencia}<br>${node.lat.toFixed(6)}, ${node.lon.toFixed(6)}`;
+  } else if (node.type === "poste") {
+    popupText = `<b>Serie: ${node.serie}</b><br>Tipo: ${node.tipo}<br>${node.lat.toFixed(6)}, ${node.lon.toFixed(6)}`;
+  }
+
+  marker.bindPopup(popupText);
 
   mapMarkers[node._id] = marker;
 }
+
+
 
 export function updateConnectionsOnMap() {
   // Para líneas eléctricas
