@@ -1,6 +1,7 @@
 import { initMap, setMapReferencePoints, addNodeToMap, updateMapWithNodes, referencePoints } from './js/map.js';
 import { nodes, colors, gpsToCanvas } from './js/canvas.js';
-import { getSubestaciones, getPostes } from './data/data.js';
+import { getSubestaciones, getPostes, getServiciosxcuentas } from './data/data.js';
+import { nodeTypes } from './data/nodesType.js'; // importa tu configuración
 
 // ========================
 // MAPA GLOBAL
@@ -26,37 +27,39 @@ tooltip.add(new Konva.Tag({ fill: "black", pointerDirection: "down", pointerWidt
 tooltip.add(new Konva.Text({ text: "", fontFamily: "Calibri", fontSize: 14, padding: 5, fill: "white" }));
 layer.add(tooltip);
 
+
 // ========================
 // FUNCIÓN GENÉRICA PARA DIBUJAR NODOS
 // ========================
-function drawNodes(data, type, color) {
-  data.forEach((item) => {
-    const { latitud, longitud, id_subestacion, id_poste } = item;
-    const pos = gpsToCanvas(latitud, longitud, referencePoints);
+function drawNodes(data, type) {
+  if (!nodeTypes[type]) {
+    console.warn(`Tipo de nodo desconocido: ${type}`);
+    return;
+  }
 
-    // Validamos coordenadas
-    if (latitud == null || longitud == null) {
+  const { color, radius, tooltip: tooltipFn } = nodeTypes[type];
+
+  data.forEach((item) => {
+    // Obtener coordenadas
+    const lat = item.latitud ?? item.lat;
+    const lon = item.longitud ?? item.lon;
+    if (lat == null || lon == null) {
       console.warn("Nodo sin coordenadas:", item);
       return;
     }
 
-    // Nodo con ID único para evitar conflictos entre tipos
-    const nodeData = {
-      _id: type + "_" + (item._id || id_subestacion || id_poste),
-      type,
-      lat: latitud,
-      lon: longitud,
-      ubicacion: type === "subestacion" ? item.ubicacion || `Subestación ${id_subestacion}` : undefined,
-      potencia: type === "subestacion" ? item.potencia || "N/A" : undefined,
-      serie: type === "poste" ? item.serie || `Poste ${id_poste}` : undefined,
-      tipo: type === "poste" ? item.tipo ?? "N/A" : undefined,
+    const pos = gpsToCanvas(lat, lon, referencePoints);
+
+    // Crear nodo genérico con ID único
+    const nodeData = { ...item, _id: type + "_" + (item._id || item.id_subestacion || item.id_poste || item.id_cuenta),
+       type, lat, lon   
     };
 
     // Círculo Konva
     const circle = new Konva.Circle({
       x: pos?.x || 0,
       y: pos?.y || 0,
-      radius: 8,
+      radius,
       fill: color,
       stroke: "black",
       strokeWidth: 1,
@@ -67,16 +70,7 @@ function drawNodes(data, type, color) {
 
     // Tooltip dinámico
     circle.on("mouseover", () => {
-      const d = circle.data;
-      let tooltipText = "";
-
-      if (d.type === "subestacion") {
-        tooltipText = `Ubicación: ${d.ubicacion}\nPotencia: ${d.potencia}\nGPS: ${d.lat.toFixed(6)}, ${d.lon.toFixed(6)}`;
-      } else if (d.type === "poste") {
-        tooltipText = `Serie: ${d.serie}\nTipo: ${d.tipo}\nGPS: ${d.lat.toFixed(6)}, ${d.lon.toFixed(6)}`;
-      }
-
-      tooltip.getText().text(tooltipText);
+      tooltip.getText().text(tooltipFn(nodeData));
       tooltip.position({ x: circle.x() + 10, y: circle.y() - 10 });
       tooltip.show();
       layer.draw();
@@ -87,7 +81,7 @@ function drawNodes(data, type, color) {
       layer.draw();
     });
 
-    // Agregamos círculo a Konva
+    // Agregamos círculo a Konva y a la lista de nodos
     layer.add(circle);
     nodes.push(circle);
 
@@ -106,8 +100,9 @@ async function init() {
   try {
     const subestaciones = await getSubestaciones();
     const postes = await getPostes();
+    const usuarios = await getServiciosxcuentas();
 
-    if (!subestaciones.length && !postes.length) return;
+    if (!subestaciones.length && !postes.length && !usuarios.length) return;
 
     // Centrar mapa
     const avgLat = subestaciones.reduce((sum, s) => sum + s.latitud, 0) / subestaciones.length;
@@ -117,8 +112,9 @@ async function init() {
     setMapReferencePoints(stage.width(), stage.height());
 
     // Dibujar nodos
-    drawNodes(subestaciones, "subestacion", colors.subestacion);
-    drawNodes(postes, "poste", colors.poste);
+    drawNodes(subestaciones, "subestacion");
+    drawNodes(postes, "poste");
+    drawNodes(usuarios, "usuario");
 
     layer.draw();
   } catch (err) {
