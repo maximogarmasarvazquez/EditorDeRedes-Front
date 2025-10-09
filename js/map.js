@@ -1,9 +1,8 @@
-import { nodes, colors } from './canvas.js';
+import { nodes } from './canvas.js';
+import { nodeTypes } from '../data/nodesType.js';
 
 let map = null;
 let mapMarkers = {};
-let mapLines = {};
-
 export let referencePoints = {
   topLeft: { x: 0, y: 0, lat: null, lon: null },
   bottomRight: { x: 0, y: 0, lat: null, lon: null },
@@ -17,8 +16,7 @@ export function initMap(lat, lon, zoom = 15) {
     map = L.map("map").setView([lat, lon], zoom);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
     L.control.scale().addTo(map);
@@ -28,13 +26,6 @@ export function initMap(lat, lon, zoom = 15) {
   return map;
 }
 
-export function getMap() {
-  return map;
-}
-
-// ========================
-// PUNTOS DE REFERENCIA Y SINCRONIZACIÓN
-// ========================
 export function setMapReferencePoints(stageWidth, stageHeight) {
   if (!map) return;
 
@@ -42,15 +33,10 @@ export function setMapReferencePoints(stageWidth, stageHeight) {
   referencePoints.topLeft = { x: 0, y: 0, lat: bounds.getNorth(), lon: bounds.getWest() };
   referencePoints.bottomRight = { x: stageWidth, y: stageHeight, lat: bounds.getSouth(), lon: bounds.getEast() };
 
-  // Guardar dentro de map por compatibilidad con app.js
-  map._referencePoints = referencePoints;
-
   syncCanvasToMap();
 }
 
 function syncCanvasToMap() {
-  if (!map) return;
-
   nodes.forEach((node) => {
     if (typeof node.x !== "function") return;
 
@@ -64,56 +50,33 @@ function syncCanvasToMap() {
 
     node.lat = coords.lat;
     node.lon = coords.lon;
+
     addNodeToMap(node);
   });
-
-  updateConnectionsOnMap();
 }
 
-// ========================
-// FUNCIONES PARA NODOS EN LEAFLET
-// ========================
 export function addNodeToMap(node) {
-  if (!map) return;
+  if (!map || !node) return;
 
-  // Si ya existe, removemos
+  const typeConfig = nodeTypes[node.type];
+  if (!typeConfig) return;
+
   if (mapMarkers[node._id]) map.removeLayer(mapMarkers[node._id]);
 
   const marker = L.circleMarker([node.lat, node.lon], {
-    radius: 6,
+    radius: typeConfig.radius,
     color: "black",
-    fillColor: colors[node.type],
-    fillOpacity: 0.9,
+    fillColor: typeConfig.color,
+    fillOpacity: 0.9
   }).addTo(map);
 
-  // Popup dinámico
-  let popupText = "";
-  if (node.type === "subestacion") {
-    popupText = `<b>${node.ubicacion}</b><br>Potencia: ${node.potencia}<br>${node.lat.toFixed(6)}, ${node.lon.toFixed(6)}`;
-  } else if (node.type === "poste") {
-    popupText = `<b>Serie: ${node.serie}</b><br>Tipo: ${node.tipo}<br>${node.lat.toFixed(6)}, ${node.lon.toFixed(6)}`;
-  }
-
-  marker.bindPopup(popupText);
-
+  marker.bindPopup(typeConfig.popup(node));
   mapMarkers[node._id] = marker;
-}
-
-
-
-export function updateConnectionsOnMap() {
-  // Para líneas eléctricas
 }
 
 export function updateMapWithNodes() {
   if (!map) return;
-
-  for (const id in mapMarkers) map.removeLayer(mapMarkers[id]);
+  Object.values(mapMarkers).forEach(m => map.removeLayer(m));
   mapMarkers = {};
-
-  nodes.forEach((node) => {
-    if (node.lat && node.lon) addNodeToMap(node);
-  });
-
-  updateConnectionsOnMap();
+  nodes.forEach(node => node.lat && node.lon && addNodeToMap(node));
 }

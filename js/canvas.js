@@ -1,4 +1,3 @@
-// canvas.js
 export const colors = {
   poste: "orange",
   transformador: "blue",
@@ -11,20 +10,8 @@ export let nodes = [];
 export let connections = [];
 
 // ========================
-// FUNCIONES DE CONVERSIÓN
+// CONVERSIÓN COORDENADAS
 // ========================
-export function canvasToGPS(x, y, referencePoints) {
-  if (!referencePoints.topLeft.lat || !referencePoints.bottomRight.lat) return null;
-
-  const xRatio = (x - referencePoints.topLeft.x) / (referencePoints.bottomRight.x - referencePoints.topLeft.x);
-  const yRatio = (y - referencePoints.topLeft.y) / (referencePoints.bottomRight.y - referencePoints.topLeft.y);
-
-  const lat = referencePoints.topLeft.lat + (referencePoints.bottomRight.lat - referencePoints.topLeft.lat) * yRatio;
-  const lon = referencePoints.topLeft.lon + (referencePoints.bottomRight.lon - referencePoints.topLeft.lon) * xRatio;
-
-  return { lat, lon };
-}
-
 export function gpsToCanvas(lat, lon, referencePoints) {
   if (!referencePoints.topLeft.lat || !referencePoints.bottomRight.lat) return null;
 
@@ -35,4 +22,13 @@ export function gpsToCanvas(lat, lon, referencePoints) {
   const y = referencePoints.topLeft.y + (referencePoints.bottomRight.y - referencePoints.topLeft.y) * yRatio;
 
   return { x, y };
+}
+
+export function canvasToGPS(x, y, referencePoints) {
+  if (!referencePoints.topLeft.lat || !referencePoints.bottomRight.lat) return null;
+
+  const lat = referencePoints.topLeft.lat + (referencePoints.bottomRight.lat - referencePoints.topLeft.lat) * ((y - referencePoints.topLeft.y) / (referencePoints.bottomRight.y - referencePoints.topLeft.y));
+  const lon = referencePoints.topLeft.lon + (referencePoints.bottomRight.lon - referencePoints.topLeft.lon) * ((x - referencePoints.topLeft.x) / (referencePoints.bottomRight.x - referencePoints.topLeft.x));
+
+  return { lat, lon };
 }
