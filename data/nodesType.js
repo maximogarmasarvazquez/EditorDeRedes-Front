@@ -31,12 +31,24 @@ export const nodeTypes = {
       `Serie: ${node.serie}\nTipo: ${node.tipo}\nGPS: ${node.lat.toFixed(6)}, ${node.lon.toFixed(6)}`
   },
 
-  usuario: {
+  usuario: { 
     color: colors.usuario,
     radius: 5,
     popup: (node) =>
-      `<b>Usuario ${node.id_cuenta}</b><br>Consumo: ${node.demanda} kW<br>${node.latitud.toFixed(6)}, ${node.longitud.toFixed(6)}`,
+      `<b>Usuario ${node.id_cuenta}</b><br>
+      Nombre: ${node.nombre}<br>
+      Calle: ${node.calle_postal}<br>
+      Consumo facturado: ${node.consumo_facturado} kWh<br>
+      Fase: ${node.fase}<br>
+      Demanda: ${node.demanda} kW<br>
+      GPS: ${node.latitud.toFixed(6)}, ${node.longitud.toFixed(6)}`,
     tooltip: (node) =>
-      `Usuario: ${node.id_cuenta}\nConsumo: ${node.demanda} kW\nGPS: ${node.latitud.toFixed(6)}, ${node.longitud.toFixed(6)}`
+      `Usuario: ${node.id_cuenta}
+  Nombre: ${node.nombre}
+  Calle: ${node.calle_postal}
+  Consumo facturado: ${node.consumo_facturado} 
+  Fase: ${node.fase}
+  Demanda: ${node.demanda} kW
+  GPS: ${node.latitud.toFixed(6)}, ${node.longitud.toFixed(6)}`
   }
 };
