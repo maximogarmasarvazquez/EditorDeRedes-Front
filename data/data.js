@@ -74,18 +74,19 @@ export async function getAcometidas() {
 // USUARIOS COMPLETOS
 export async function getUsuariosCompletos() {
   try {
-    const [serviciosxcuenta, cuentas, consumos, acometidas] = await Promise.all([
+    const [serviciosxcuenta, cuentas, consumos, acometidas, subestaciones] = await Promise.all([
       getServiciosxcuentas(),
       getCuentas(),
       getConsumos(),
-      getAcometidas()
+      getAcometidas(),
+      getSubestaciones()
     ]);
 
     // 1️⃣ Agrupar serviciosxcuenta por id_cuenta y quedarnos con el último registro (por demanda o id_servicioxcuenta)
     const serviciosPorCuenta = Object.values(
       serviciosxcuenta.reduce((acc, sxc) => {
         const id = Number(sxc.id_cuenta);
-        if (!acc[id] || sxc.demanda > acc[id].demanda) { 
+        if (!acc[id] || sxc.demanda > acc[id].demanda) {
           // Tomamos la fila con mayor demanda
           acc[id] = sxc;
         }
@@ -93,37 +94,42 @@ export async function getUsuariosCompletos() {
       }, {})
     );
 
-    // 2️⃣ Mapear cuentas únicas y agregar consumo y acometida
-    const usuarios = serviciosPorCuenta.map(sxc => {
-      const cuenta = cuentas.find(c => Number(c.id_cuenta) === Number(sxc.id_cuenta)) || {};
+    // 2️⃣ Mapear cuentas únicas y agregar consumo, acometida y subestación
+    const usuarios = serviciosPorCuenta.map((sxc) => {
+      const cuenta = cuentas.find((c) => Number(c.id_cuenta) === Number(sxc.id_cuenta)) || {};
 
       // Último consumo de esta cuenta
       const consumo = consumos
-        .filter(c => Number(c.id_cuenta) === Number(sxc.id_cuenta))
+        .filter((c) => Number(c.id_cuenta) === Number(sxc.id_cuenta))
         .sort((a, b) => b.id_consumo - a.id_consumo)[0];
 
       // Última acometida de esta cuenta
       const acometida = acometidas
-        .filter(a => Number(a.id_cuenta) === Number(sxc.id_cuenta))
+        .filter((a) => Number(a.id_cuenta) === Number(sxc.id_cuenta))
         .sort((a, b) => b.id_acometida - a.id_acometida)[0];
+
+      // Buscar la subestación asociada a la acometida
+      const subestacion = subestaciones.find(
+        (s) => Number(s.id_subestacion) === Number(acometida?.id_subestacion)
+      );
 
       return {
         id_cuenta: sxc.id_cuenta,
         latitud: sxc.latitud,
         longitud: sxc.longitud,
         demanda: sxc.demanda,
-        nombre: cuenta.nombre || "Desconocido",
-        calle_postal: cuenta.calle_postal || "Sin dirección",
-        consumo_facturado: consumo?.consumo_facturado ?? "N/A",
-        fase: acometida?.fase || "No registrada",
-        tipo_acometida: acometida?.tipo || "N/A"
+        nombre: cuenta.nombre || "Nombre no registrado",
+        calle_postal: cuenta.calle_postal || "Direccion no registrada",
+        consumo_facturado: consumo?.consumo_facturado ?? "Consumo no registrado 0",
+        fase: acometida?.fase || "Fase no registrada",
+        ubicacion_subestacion: subestacion?.ubicacion || "Ubicación no registrada",
       };
     });
 
+    console.log(usuarios);
     return usuarios;
   } catch (err) {
     console.error("Error al combinar datos de usuarios:", err);
     return [];
   }
 }
-

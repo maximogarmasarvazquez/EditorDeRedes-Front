@@ -38,17 +38,19 @@ export const nodeTypes = {
       `<b>Usuario ${node.id_cuenta}</b><br>
       Nombre: ${node.nombre}<br>
       Calle: ${node.calle_postal}<br>
-      Consumo facturado: ${node.consumo_facturado} kWh<br>
+      Ultimo consumo facturado: ${node.consumo_facturado} kWh<br>
       Fase: ${node.fase}<br>
       Demanda: ${node.demanda} kW<br>
+      Ubicacion de Subestacion:  ${node.ubicacion_subestacion} <br>
       GPS: ${node.latitud.toFixed(6)}, ${node.longitud.toFixed(6)}`,
     tooltip: (node) =>
       `Usuario: ${node.id_cuenta}
   Nombre: ${node.nombre}
   Calle: ${node.calle_postal}
-  Consumo facturado: ${node.consumo_facturado} 
+  Ultimo consumo facturado: ${node.consumo_facturado} 
   Fase: ${node.fase}
   Demanda: ${node.demanda} kW
+  Ubicacion de Subestacion:  ${node.ubicacion_subestacion} <br>
   GPS: ${node.latitud.toFixed(6)}, ${node.longitud.toFixed(6)}`
   }
 };

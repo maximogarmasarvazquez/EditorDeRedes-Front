@@ -2,7 +2,6 @@
 import { initMap, setMapReferencePoints, updateMapWithNodes, referencePoints } from './js/map.js';
 import { nodes as canvasNodes, drawNodes, createTooltip } from './js/canvas.js';
 import { getSubestaciones, getPostes, getUsuariosCompletos, getServiciosxcuentas } from './data/data.js';
-
 // STAGE KONVA
 const stage = new Konva.Stage({
   container: "container",
