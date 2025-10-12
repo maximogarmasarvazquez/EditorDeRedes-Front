@@ -1,7 +1,5 @@
-// canvas.js
 import { nodeTypes } from '../data/nodesType.js';
 import { gpsToCanvas } from './utils/canvasUtils.js';
-import { addNodeToMap } from './map.js';
 
 export const nodes = [];
 
@@ -68,7 +66,7 @@ export function drawNodes(layer, tooltip, data, type, referencePoints) {
     layer.add(circle);
     nodes.push(circle);
 
-    addNodeToMap(nodeData);
+    // NO agregamos al mapa aquí
   });
 
   layer.draw();

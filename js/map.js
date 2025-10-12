@@ -1,5 +1,4 @@
 // map.js
-import { nodes } from './canvas.js';
 import { nodeTypes } from '../data/nodesType.js';
 
 let map = null;
@@ -8,8 +7,10 @@ export let referencePoints = {
   bottomRight: { x: 0, y: 0, lat: null, lon: null },
 };
 
+// Guardamos los markers del mapa
 const mapMarkers = {};
 
+// Inicializa el mapa Leaflet
 export function initMap(lat, lon, zoom = 15) {
   if (!map) {
     map = L.map("map").setView([lat, lon], zoom);
@@ -25,6 +26,7 @@ export function initMap(lat, lon, zoom = 15) {
   return map;
 }
 
+// Define los puntos de referencia para convertir coordenadas GPS a canvas
 export function setMapReferencePoints(stageWidth, stageHeight) {
   if (!map) return;
 
@@ -33,12 +35,14 @@ export function setMapReferencePoints(stageWidth, stageHeight) {
   referencePoints.bottomRight = { x: stageWidth, y: stageHeight, lat: bounds.getSouth(), lon: bounds.getEast() };
 }
 
+// Agrega un nodo al mapa Leaflet
 export function addNodeToMap(node) {
   if (!map || !node) return;
 
   const typeConfig = nodeTypes[node.type];
   if (!typeConfig) return;
 
+  // Remueve marker previo si existe
   if (mapMarkers[node._id]) map.removeLayer(mapMarkers[node._id]);
 
   const marker = L.circleMarker([node.lat, node.lon], {
@@ -52,8 +56,14 @@ export function addNodeToMap(node) {
   mapMarkers[node._id] = marker;
 }
 
+// Limpia todos los markers del mapa
+export function clearMapMarkers() {
+  Object.values(mapMarkers).forEach(marker => map.removeLayer(marker));
+  Object.keys(mapMarkers).forEach(key => delete mapMarkers[key]);
+}
+
+// Esta función ya no es necesaria para filtrado; usamos renderAllNodes en app.js
 export function updateMapWithNodes() {
-  if (!map) return;
-  Object.values(mapMarkers).forEach(m => map.removeLayer(m));
-  nodes.forEach(node => node.lat && node.lon && addNodeToMap(node.data));
+  // Si la querés conservar, puede solo limpiar y re-agregar todos
+  clearMapMarkers();
 }

@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
+    <!-- MENU LATERAL -->
     <div id="menu">
         <div class="logo">
             <h2>EDITOR ELÉCTRICO CON GPS</h2>
@@ -27,29 +28,69 @@
         <div>
             <h3>Herramientas</h3>
             <div class="btn-group">
-                <button ><span>🟠</span> Poste</button>
-                <button ><span>🔵</span> Transformador</button>
-                <button ><span>🟢</span> Seccionador</button>
-                <button ><span>🔴</span> Subestación</button>
-                <button ><span>🔺</span> Usuario</button>
-                <button class="btn-connect" ><span>📏</span> Conectar</button>
-                <button class="btn-gps" ><span>📍</span> Obtener GPS Actual</button>
+                <button><span>🟠</span> Poste</button>
+                <button><span>🔵</span> Transformador</button>
+                <button><span>🔺</span> Seccionador</button>
+                <button><span>🔴</span> Subestación</button>
+                <button><span>🟢</span> Usuario</button>
+                <button class="btn-connect"><span>📏</span> Conectar</button>
+                <button class="btn-gps"><span>📍</span> Obtener GPS Actual</button>
             </div>
+        </div>
+
+        <!-- FILTROS ABAJO -->
+        <div class="filtros">
+            <h3 >Filtros de Nodos</h3>
+            <div class="btn-group">
+                <button class="filter-btn sub active" onclick="toggleFilter('filter-subestaciones', this)">
+                    <span>🔴</span> Subestaciones
+                    <div class="checkbox">
+                     <span class="checkbox-indicator">✔</span>
+                     <input type="checkbox" id="filter-subestaciones" checked hidden>
+                    </div>
+                </button>
+                <button class="filter-btn poste active" onclick="toggleFilter('filter-postes', this)">
+                    <span>🟠</span> Postes
+                     <div class="checkbox">
+                         <span class="checkbox-indicator">✔</span>
+                        <input type="checkbox" id="filter-postes" checked hidden>
+                    </div>
+                </button>
+                <button class="filter-btn usuario active" onclick="toggleFilter('filter-usuarios', this)">
+                    <span>🟢</span> Usuarios
+                    <div class="checkbox">
+                         <span class="checkbox-indicator">✔</span>
+                        <input type="checkbox" id="filter-usuarios" checked hidden>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+         <div class="btn-group">
+            <button class="btn-save" ><span>💾</span> Guardar Datos</button>
+            <button class="btn-export" ><span>🖼</span> Exportar PNG</button>
+            <button class="btn-export"><span>🌐</span> Exportar GeoJSON</button>
+            <!-- <button class="btn-export" ><span>🔄</span> Sincronizar con Mapa</button> -->
         </div>
     </div>
 
+    <!-- CONTENEDOR PRINCIPAL -->
     <div id="main-container">
-        <div id="view-tabs"></div>
-
         <div id="editor-view" class="view">
             <div id="container"></div>
-        </div>
+            </div>
 
         <div id="map-view" class="view active">
             <div id="map"></div>
-        </div>
-
-   
+        <!-- </div>
+          <div class="status-bar">
+            <div class="connection-status">
+                <div class="status-indicator" id="db-status"></div>
+                <span>Modo: <span id="status-text">Listo</span></span>
+            </div>
+            <div id="selected-info">Ningún elemento seleccionado</div>
+            <div id="gps-info">GPS: No disponible</div>
+        </div> -->
     </div>
 
     <script type="module" src="app.js"></script>
