@@ -191,3 +191,21 @@ button:active {
 h3 {
     padding: 4px;
 }
+
+        .tab {
+            padding: 12px 20px;
+            background: #2c3e50;
+            color: white;
+            cursor: pointer;
+            border: none;
+            transition: background 0.3s;
+        }
+        
+        .tab.active {
+            background: #3498db;
+            font-weight: bold;
+        }
+        
+        .tab:hover {
+            background: #2980b9;
+        }

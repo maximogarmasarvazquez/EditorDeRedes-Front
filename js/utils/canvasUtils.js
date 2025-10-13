@@ -1,21 +1,32 @@
 // canvasUtils.js
-export function gpsToCanvas(lat, lon, referencePoints) {
-  if (!referencePoints.topLeft.lat || !referencePoints.bottomRight.lat) return null;
 
-  const xRatio = (lon - referencePoints.topLeft.lon) / (referencePoints.bottomRight.lon - referencePoints.topLeft.lon);
-  const yRatio = (lat - referencePoints.topLeft.lat) / (referencePoints.bottomRight.lat - referencePoints.topLeft.lat);
+import { referencePoints } from '../map.js';
 
-  const x = referencePoints.topLeft.x + (referencePoints.bottomRight.x - referencePoints.topLeft.x) * xRatio;
-  const y = referencePoints.topLeft.y + (referencePoints.bottomRight.y - referencePoints.topLeft.y) * yRatio;
+// Convertir coordenadas de canvas a GPS
+export function canvasToGPS(x, y) {
+    const { topLeft, bottomRight } = referencePoints;
+    if (!topLeft.lat || !bottomRight.lat) return null;
 
-  return { x, y };
+    const xRatio = (x - topLeft.x) / (bottomRight.x - topLeft.x);
+    const yRatio = (y - topLeft.y) / (bottomRight.y - topLeft.y);
+
+    const lat = topLeft.lat + (bottomRight.lat - topLeft.lat) * yRatio;
+    const lon = topLeft.lon + (bottomRight.lon - topLeft.lon) * xRatio;
+
+    return { lat, lon };
 }
 
-export function canvasToGPS(x, y, referencePoints) {
-  if (!referencePoints.topLeft.lat || !referencePoints.bottomRight.lat) return null;
+// Convertir coordenadas GPS a canvas
+export function gpsToCanvas(lat, lon) {
+    const { topLeft, bottomRight } = referencePoints;
+    if (!topLeft.lat || !bottomRight.lat) return null;
 
-  const lat = referencePoints.topLeft.lat + (referencePoints.bottomRight.lat - referencePoints.topLeft.lat) * ((y - referencePoints.topLeft.y) / (referencePoints.bottomRight.y - referencePoints.topLeft.y));
-  const lon = referencePoints.topLeft.lon + (referencePoints.bottomRight.lon - referencePoints.topLeft.lon) * ((x - referencePoints.topLeft.x) / (referencePoints.bottomRight.x - referencePoints.topLeft.x));
+    const xRatio = (lon - topLeft.lon) / (bottomRight.lon - topLeft.lon);
+    const yRatio = (lat - topLeft.lat) / (bottomRight.lat - topLeft.lat);
 
-  return { lat, lon };
+    const x = topLeft.x + (bottomRight.x - topLeft.x) * xRatio;
+    // Corregido: Usa topLeft.y
+    const y = topLeft.y + (bottomRight.y - topLeft.y) * yRatio; 
+
+    return { x, y };
 }
