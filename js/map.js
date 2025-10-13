@@ -11,7 +11,7 @@ export let referencePoints = {
 const mapMarkers = {};
 
 // Inicializa el mapa Leaflet
-export function initMap(lat, lon, zoom = 15) {
+export function initMap(lat, lon, zoom) {
   if (!map) {
     map = L.map("map").setView([lat, lon], zoom);
 

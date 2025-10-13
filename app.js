@@ -47,18 +47,40 @@ async function init() {
 
   allNodes = { subestaciones, postes, usuarios };
 
-  if (!subestaciones.length && !postes.length && !usuarios.length) return;
+  // Si no hay ningún nodo, salir
+  if (!subestaciones.length && !postes.length && !usuarios.length) {
+    console.warn("No hay nodos para mostrar.");
+    return;
+  }
 
-  const combined = [...subestaciones, ...postes, ...usuarios];
-  const avgLat = combined.reduce((sum, n) => sum + n.latitud, 0) / combined.length;
-  const avgLon = combined.reduce((sum, n) => sum + n.longitud, 0) / combined.length;
+  // Combinar y filtrar solo los que tienen coordenadas válidas
+  const combined = [...subestaciones, ...postes, ...usuarios].filter(n =>
+    typeof n.latitud === 'number' &&
+    typeof n.longitud === 'number' &&
+    !isNaN(n.latitud) &&
+    !isNaN(n.longitud)
+  );
 
-  map = initMap(avgLat, avgLon);
+  // Si no hay ninguno válido, mostrar advertencia y usar coordenadas por defecto
+  if (!combined.length) {
+    console.warn("No hay nodos con coordenadas válidas. Centrado por defecto.");
+    map = initMap(-31.4167, -64.1833, 15); // Córdoba como fallback
+  } else {
+    // Promedio de coordenadas válidas
+    const avgLat = combined.reduce((sum, n) => sum + n.latitud, 0) / combined.length;
+    const avgLon = combined.reduce((sum, n) => sum + n.longitud, 0) / combined.length;
+    map = initMap(avgLat, avgLon, 15);
+  }
+
   setMapReferencePoints(stage.width(), stage.height());
-
   renderAllNodes();
-}
 
+  // Asegurarse de que el mapa esté centrado en algún nodo visible
+  const firstValidNode = combined[0];
+  if (firstValidNode) {
+    map.setView([firstValidNode.latitud, firstValidNode.longitud], 15);
+  }
+}
 // ==============================
 // RENDER NODOS KONVA + MAPA
 // ==============================
@@ -78,9 +100,28 @@ function renderAllNodes(filter = { subestaciones: true, postes: true, usuarios: 
     return { ...n, lat, lon, _id: id, type };
   }
 
-  if (filter.subestaciones) allNodes.subestaciones.forEach(n => addNodeToMap(normalizeNode(n, 'subestacion')));
-  if (filter.postes) allNodes.postes.forEach(n => addNodeToMap(normalizeNode(n, 'poste')));
-  if (filter.usuarios) allNodes.usuarios.forEach(n => addNodeToMap(normalizeNode(n, 'usuario')));
+function isValidCoord(lat, lon) {
+  return typeof lat === 'number' && typeof lon === 'number' && !isNaN(lat) && !isNaN(lon);
+}
+
+if (filter.subestaciones)
+  allNodes.subestaciones.forEach(n => {
+    const node = normalizeNode(n, 'subestacion');
+    if (isValidCoord(node.lat, node.lon)) addNodeToMap(node);
+  });
+
+if (filter.postes)
+  allNodes.postes.forEach(n => {
+    const node = normalizeNode(n, 'poste');
+    if (isValidCoord(node.lat, node.lon)) addNodeToMap(node);
+  });
+
+if (filter.usuarios)
+  allNodes.usuarios.forEach(n => {
+    const node = normalizeNode(n, 'usuario');
+    if (isValidCoord(node.lat, node.lon)) addNodeToMap(node);
+  });
+
 }
 
 function toggleFilter(checkboxId, btn) {
