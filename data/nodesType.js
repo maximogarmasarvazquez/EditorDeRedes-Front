@@ -24,7 +24,7 @@ export const nodeTypes = {
 
   poste: {
     color: colors.poste,
-    radius: 6,
+    radius: 7,
     popup: (node) =>
       `<b>Serie: ${node.serie}</b><br>Tipo: ${node.tipo}<br>${node.lat.toFixed(6)}, ${node.lon.toFixed(6)}`,
     tooltip: (node) =>
@@ -33,7 +33,7 @@ export const nodeTypes = {
 
   usuario: { 
     color: colors.usuario,
-    radius: 5,
+    radius: 6,
     popup: (node) =>
       `<b>Usuario ${node.id_cuenta}</b><br>
       Nombre: ${node.nombre}<br>
