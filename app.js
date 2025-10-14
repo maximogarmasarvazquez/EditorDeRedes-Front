@@ -1,10 +1,8 @@
-import { initMap, setMapReferencePoints, referencePoints, addNodeToMap, clearMapMarkers, map } from './js/map.js'; 
-import { nodes as canvasNodes, drawNodes, createTooltip } from './js/canvas.js'; 
+import { initMap, setMapReferencePoints, addNodeToMap, clearMapMarkers, map, referencePoints } from './js/map.js'; 
+import { nodes as canvasNodes, drawNodes, createTooltip, updateNodesPositions } from './js/canvas.js'; 
 import { getSubestaciones, getPostes, getUsuariosCompletos } from './data/data.js';
 
-// ==============================
-// STAGE KONVA
-// ==============================
+// Konva stage
 const stage = new Konva.Stage({
   container: "container",
   width: window.innerWidth - 320,
@@ -14,12 +12,9 @@ const stage = new Konva.Stage({
 const layer = new Konva.Layer();
 stage.add(layer);
 
-// Tooltip
 const tooltip = createTooltip(layer);
 
-// ==============================
-// ZOOM (Controlado por Leaflet)
-// ==============================
+// Zoom con wheel
 stage.on('wheel', (e) => {
   e.evt.preventDefault();
   if (!map) return;
@@ -32,75 +27,64 @@ stage.on('wheel', (e) => {
     const mapPointerX = pointer.x - stage.x(); 
     const mapPointerY = pointer.y - stage.y();
     const mapLatLng = map.containerPointToLatLng([mapPointerX, mapPointerY]);
-    map.setView(mapLatLng, newZoom, { animate: false });
+    map.setZoomAround(mapLatLng, newZoom, { animate: false });
   }
 });
 
-// ==============================
-// PAN (Arrastre del Stage)
-// ==============================
-stage.on('dragend', () => {
-  if (!map) return;
-
-  const stagePos = stage.position();
-  const centerPointContainer = { 
-      x: stage.width() / 2 - stagePos.x, 
-      y: stage.height() / 2 - stagePos.y 
-  };
-
-  const newCenter = map.containerPointToLatLng([centerPointContainer.x, centerPointContainer.y]);
-  map.setView(newCenter, map.getZoom(), { animate: false });
-  stage.position({ x: 0, y: 0 });
-});
-
-// ==============================
-// DATOS E INICIALIZACIÓN
-// ==============================
+// Datos
 let allNodes = { subestaciones: [], postes: [], usuarios: [] };
-
-// Estado global de filtros
 let currentFilter = { subestaciones: true, postes: true, usuarios: true };
 
+// Normaliza nodo
+function normalizeNode(n, type) {
+  const lat = n.latitud ?? n.lat;
+  const lon = n.longitud ?? n.lon;
+  const id = type + "_" + (n._id || n.id_subestacion || n.id_poste || n.id_cuenta);
+  return { ...n, lat, lon, _id: id, type };
+}
+
+function isValidCoord(lat, lon) {
+  return typeof lat === 'number' && typeof lon === 'number' && !isNaN(lat) && !isNaN(lon);
+}
+
+// Init
 async function init() {
-  const subestaciones = (typeof getSubestaciones === 'function') ? await getSubestaciones() : [];
-  const postes = (typeof getPostes === 'function') ? await getPostes() : [];
-  const usuarios = (typeof getUsuariosCompletos === 'function') ? await getUsuariosCompletos() : [];
+  const subestaciones = await getSubestaciones();
+  const postes = await getPostes();
+  const usuarios = await getUsuariosCompletos();
 
   allNodes = { subestaciones, postes, usuarios };
 
-  const combined = [...subestaciones, ...postes, ...usuarios].filter(n =>
-    typeof n.latitud === 'number' && typeof n.longitud === 'number' && !isNaN(n.latitud) && !isNaN(n.longitud)
-  );
+  const combined = [...subestaciones, ...postes, ...usuarios]
+    .map(n => normalizeNode(n, n.type || 'unknown'))
+    .filter(n => isValidCoord(n.lat, n.lon));
 
   let initialLat = -31.4167;
   let initialLon = -64.1833;
   if (combined.length) {
-    initialLat = combined.reduce((sum, n) => sum + n.latitud, 0) / combined.length;
-    initialLon = combined.reduce((sum, n) => sum + n.longitud, 0) / combined.length;
+    initialLat = combined.reduce((sum, n) => sum + n.lat, 0) / combined.length;
+    initialLon = combined.reduce((sum, n) => sum + n.lon, 0) / combined.length;
   }
 
   initMap(initialLat, initialLon, 15);
 
   map.whenReady(() => {
-    setMapReferencePoints(stage.width(), stage.height());
-    updateReferencePointsAndRedraw();
+    setMapReferencePoints();
+    renderAllNodes(currentFilter);
 
-    map.on('zoomend', updateReferencePointsAndRedraw);
-    map.on('moveend', updateReferencePointsAndRedraw);
+    map.on('zoomend', updateReferencePointsAndNodes);
+    map.on('moveend', updateReferencePointsAndNodes);
   });
 }
 
-// ==============================
-// FUNCIONES DE RENDER
-// ==============================
+// Render
 function drawKonvaNodes(subestaciones, postes, usuarios) {
   layer.destroyChildren(); 
-  createTooltip(layer); 
   canvasNodes.length = 0; 
 
-  if (subestaciones && allNodes.subestaciones) drawNodes(layer, tooltip, allNodes.subestaciones, "subestacion", referencePoints);
-  if (postes && allNodes.postes) drawNodes(layer, tooltip, allNodes.postes, "poste", referencePoints);
-  if (usuarios && allNodes.usuarios) drawNodes(layer, tooltip, allNodes.usuarios, "usuario", referencePoints);
+  if (subestaciones) drawNodes(layer, tooltip, allNodes.subestaciones, "subestacion", referencePoints);
+  if (postes) drawNodes(layer, tooltip, allNodes.postes, "poste", referencePoints);
+  if (usuarios) drawNodes(layer, tooltip, allNodes.usuarios, "usuario", referencePoints);
 
   layer.batchDraw();
 }
@@ -110,17 +94,6 @@ function renderAllNodes(filter = currentFilter) {
 
   clearMapMarkers();
   if (!map) return;
-
-  function normalizeNode(n, type) {
-    const lat = n.latitud ?? n.lat;
-    const lon = n.longitud ?? n.lon;
-    const id = type + "_" + (n._id || n.id_subestacion || n.id_poste || n.id_cuenta);
-    return { ...n, lat, lon, _id: id, type };
-  }
-
-  function isValidCoord(lat, lon) {
-    return typeof lat === 'number' && typeof lon === 'number' && !isNaN(lat) && !isNaN(lon);
-  }
 
   if (filter.subestaciones)
     allNodes.subestaciones.forEach(n => {
@@ -141,27 +114,21 @@ function renderAllNodes(filter = currentFilter) {
     });
 }
 
-// ==============================
-// SINCRONIZACIÓN
-// ==============================
-function updateReferencePointsAndRedraw() {
-  setMapReferencePoints(stage.width(), stage.height());
-  renderAllNodes(currentFilter);
+// Sincronización
+function updateReferencePointsAndNodes() {
+  setMapReferencePoints();
+  updateNodesPositions(referencePoints);
 }
 
-// ==============================
-// EVENTOS DE RESIZE
-// ==============================
+// Resize
 window.addEventListener("resize", () => {
   stage.width(window.innerWidth - 320);
   stage.height(window.innerHeight - 40);
-  updateReferencePointsAndRedraw();
+  updateReferencePointsAndNodes();
   map?.invalidateSize();
 });
 
-// ==============================
-// FILTROS Y VISTAS
-// ==============================
+// Filtros y vistas
 function toggleFilter(checkboxId, btn) {
   const checkbox = document.getElementById(checkboxId);
   checkbox.checked = !checkbox.checked;
@@ -193,10 +160,8 @@ function switchView(view) {
   }
 }
 
-// ==============================
-// EXPOSICIÓN GLOBAL
-// ==============================
-window.updateReferencePoints = updateReferencePointsAndRedraw; 
+// Exposición global
+window.updateReferencePoints = updateReferencePointsAndNodes; 
 window.switchView = switchView;
 window.applyFilter = applyFilter;
 window.toggleFilter = toggleFilter;
