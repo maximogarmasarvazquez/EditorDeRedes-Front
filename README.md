@@ -94,26 +94,19 @@ node server
 ### Flujo de Trabajo
 
 1.  Abrir el frontend en el navegador (generalmente en `http://localhost:3000` o `http://127.0.0.1:8080`).
-2.  **Editor de Red (Konva):** Use las herramientas para añadir y conectar elementos.
-3.  **Configuración GPS Inicial (Crucial):** Para que la sincronización funcione correctamente, vaya a la vista `🗺 Mapa GPS` y use el botón:
-      * **`🎯 Establecer Puntos de Referencia`**: Esto calibra el Canvas, mapeando las coordenadas de píxel a las coordenadas GPS de lo que está viendo actualmente en el mapa.
-4.  **Georreferenciamiento:**
-      * Mueva un nodo en el Editor: su posición GPS se recalcula automáticamente y el marcador del mapa se mueve.
-      * Seleccione un nodo y use **`📍 Obtener GPS Actual`**: Asigna la ubicación real del dispositivo al nodo, y este se mueve en el Canvas para coincidir con el mapa.
-5.  **Persistencia:** Use **`💾 Guardar Datos`** para almacenar el estado actual de la red.
-
+2.  **Editor de Red (Konva):** Herramientas para añadir, editar y conectar elementos en un futuro.
+3.  **Mapas:** Mapa de marcas localizadas por coordenadas (subestaciones, usuarios, postes).
 -----
 
 ## Estructura del Proyecto
 
   * `index.html` → HTML principal del frontend.
   * `config.js` → Archivo de configuración local para tokens de API.
+  * `server.js` → Archivo para levantar el servidor Node.js/Express.
+  * `app.js` → Lógica principal (inicialización, cambio de vistas, coordinación entre módulos).
   * `css/`
       * `styles.css` → Estilos generales del proyecto.
   * `js/`
-      * `map.js` → Lógica de inicialización y actualización del mapa Leaflet.
+      * `map.js` → Lógica de inicialización y actualización del mapa .
       * `canvas.js` → Funciones para la manipulación y eventos de Konva.
-      * `data.js` → Simulación o *fetch* de datos de subestaciones y elementos.
-      * `app.js` → Lógica principal (inicialización, cambio de vistas, coordinación entre módulos).
-  * `server/` (Asumiendo que existe una carpeta para el servidor local)
-      * `server.js` → Archivo para levantar el servidor Node.js/Express.
+      * `data.js` →  fetch de datos de subestaciones y elementos.

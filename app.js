@@ -141,7 +141,7 @@ async function init() {
   allNodes = { subestaciones, postes, usuarios };
 
   const combined = [...subestaciones, ...postes, ...usuarios]
-    .map(n => normalizeNode(n, n.type || 'unknown'))
+    .map(n => normalizeNode(n, n.type ))
     .filter(n => isValidCoord(n.lat, n.lon));
 
   let initialLat = -31.4167;

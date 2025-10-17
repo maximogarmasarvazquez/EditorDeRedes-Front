@@ -22,16 +22,13 @@ export function initMap(lat, lon, zoom, type = "openstreet") {
 
   // 🔄 eliminar mapa previo
   if (map) {
-    // @ts-ignore
     if (map.remove) map.remove();
     map = null;
   }
 
   // === MAPBOX ===
   if (type === "mapbox") {
-    // @ts-ignore
     mapboxgl.accessToken = MAPBOX_TOKEN;
-    // @ts-ignore
     map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/streets-v12',
