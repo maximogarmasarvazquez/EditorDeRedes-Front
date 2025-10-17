@@ -22,7 +22,6 @@ stage.on('wheel', (e) => {
   const currentZoom = map.getZoom();
   const newZoom = currentZoom + direction;
 
-  // @ts-ignore
   if (newZoom >= map.getMinZoom() && newZoom <= map.getMaxZoom()) {
     const pointer = stage.getPointerPosition();
     // Posición del puntero en coordenadas del contenedor (necesario para el mapa)
@@ -33,31 +32,21 @@ stage.on('wheel', (e) => {
     let newMapPoint = null; // Para compensar el Stage Konva
 
     // 1. Convertir punto de pantalla a Lat/Lng (Manejo de Leaflet/Mapbox)
-    // @ts-ignore
     if (map.containerPointToLatLng) { // Leaflet
-      // @ts-ignore
       mapLatLng = map.containerPointToLatLng([mapPointerX, mapPointerY]);
-    // @ts-ignore
     } else if (map.unproject) { // Mapbox GL JS
-      // @ts-ignore
       const lngLat = map.unproject([mapPointerX, mapPointerY]).toArray(); 
       mapLatLng = { lat: lngLat[1], lng: lngLat[0] }; 
     }
 
     if (mapLatLng) {
       // 2. Aplicar zoom al mapa
-      // @ts-ignore
       if (map.setZoomAround) { // Leaflet
-        // @ts-ignore
         map.setZoomAround(mapLatLng, newZoom, { animate: false });
-        // @ts-ignore
         newMapPoint = map.latLngToContainerPoint(mapLatLng);
       } else if (map.setZoom && map.setCenter) { // Mapbox
-        // @ts-ignore
         map.setCenter([mapLatLng.lng, mapLatLng.lat], { animate: false }); 
-        // @ts-ignore
         map.setZoom(newZoom, { animate: false }); 
-        // @ts-ignore
         newMapPoint = map.project([mapLatLng.lng, mapLatLng.lat]);
       }
 
@@ -68,6 +57,7 @@ stage.on('wheel', (e) => {
           
           stage.x(stage.x() - deltaX);
           stage.y(stage.y() - deltaY);
+          updateReferencePointsAndNodes(); // Asegura la actualización de los nodos Konva
       }
     }
   }
@@ -76,25 +66,53 @@ stage.on('wheel', (e) => {
 let currentMapType = 'openstreet';  
 
 document.getElementById('toggle-map-btn').addEventListener('click', () => {
-  currentMapType = currentMapType === 'openstreet' ? 'mapbox' : 'openstreet';
+  // Alternar tipo de mapa
+  const newMapType = currentMapType === 'openstreet' ? 'mapbox' : 'openstreet';
 
-  const lat = map?.getCenter()?.lat || -31.417;
-  const lon = map?.getCenter()?.lng || -64.183;
-  const zoom = map?.getZoom() || 13;
+  if (!map) return;
 
-  initMap(lat, lon, zoom, currentMapType);
+  // Guardar referencia al mapa actual antes de cambiar
+  const oldMap = map;
+  const zoom = oldMap.getZoom();
 
-  // 🔄 Reasignar eventos y referencias
+  // 🔹 Calcular centro visual compensando desplazamiento del stage
+  const stageOffsetX = stage.x();
+  const stageOffsetY = stage.y();
+  const containerCenter = [
+    (stage.width() / 2) - stageOffsetX,
+    (stage.height() / 2) - stageOffsetY
+  ];
+
+  let centerLatLng;
+
+  if (oldMap.containerPointToLatLng) {
+    // Mapa antiguo era Leaflet
+    centerLatLng = oldMap.containerPointToLatLng(containerCenter);
+  } else if (oldMap.unproject) {
+    // Mapa antiguo era Mapbox
+    const lngLat = oldMap.unproject(containerCenter).toArray();
+    centerLatLng = { lat: lngLat[1], lng: lngLat[0] };
+  } else {
+    // Fallback por si algo falla
+    centerLatLng = oldMap.getCenter ? oldMap.getCenter() : { lat: -31.417, lng: -64.183 };
+  }
+
+  // 🔹 Inicializar el mapa nuevo con centro compensado
+  currentMapType = newMapType;
+  initMap(centerLatLng.lat, centerLatLng.lng, zoom, currentMapType);
+
+  // 🔄 Reasignar referencias y renderizar nodos después de cargar el mapa
   if (map) {
     setTimeout(() => {
       setMapReferencePoints();
       renderAllNodes(currentFilter);
 
-      if (map.on) { // solo Leaflet tiene esto
+      // Reasignar eventos de zoom/move
+      if (map.on) {
         map.on('zoomend', updateReferencePointsAndNodes);
         map.on('moveend', updateReferencePointsAndNodes);
       }
-    }, 500);
+    }, 500); // esperar a que el mapa termine de renderizar
   }
 });
 
