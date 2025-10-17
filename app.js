@@ -14,20 +14,87 @@ stage.add(layer);
 
 const tooltip = createTooltip(layer);
 
-// Zoom con wheel
 stage.on('wheel', (e) => {
-  e.evt.preventDefault();
-  if (!map) return;
+  e.evt.preventDefault();
+  if (!map) return;
 
-  const direction = e.evt.deltaY > 0 ? -1 : 1;
-  const newZoom = map.getZoom() + direction;
+  const direction = e.evt.deltaY > 0 ? -1 : 1;
+  const currentZoom = map.getZoom();
+  const newZoom = currentZoom + direction;
 
-  if (newZoom >= map.getMinZoom() && newZoom <= map.getMaxZoom()) {
-    const pointer = stage.getPointerPosition();
-    const mapPointerX = pointer.x - stage.x(); 
-    const mapPointerY = pointer.y - stage.y();
-    const mapLatLng = map.containerPointToLatLng([mapPointerX, mapPointerY]);
-    map.setZoomAround(mapLatLng, newZoom, { animate: false });
+  // @ts-ignore
+  if (newZoom >= map.getMinZoom() && newZoom <= map.getMaxZoom()) {
+    const pointer = stage.getPointerPosition();
+    // Posición del puntero en coordenadas del contenedor (necesario para el mapa)
+    const mapPointerX = (pointer.x - stage.x()); 
+    const mapPointerY = (pointer.y - stage.y());
+
+    let mapLatLng = null;
+    let newMapPoint = null; // Para compensar el Stage Konva
+
+    // 1. Convertir punto de pantalla a Lat/Lng (Manejo de Leaflet/Mapbox)
+    // @ts-ignore
+    if (map.containerPointToLatLng) { // Leaflet
+      // @ts-ignore
+      mapLatLng = map.containerPointToLatLng([mapPointerX, mapPointerY]);
+    // @ts-ignore
+    } else if (map.unproject) { // Mapbox GL JS
+      // @ts-ignore
+      const lngLat = map.unproject([mapPointerX, mapPointerY]).toArray(); 
+      mapLatLng = { lat: lngLat[1], lng: lngLat[0] }; 
+    }
+
+    if (mapLatLng) {
+      // 2. Aplicar zoom al mapa
+      // @ts-ignore
+      if (map.setZoomAround) { // Leaflet
+        // @ts-ignore
+        map.setZoomAround(mapLatLng, newZoom, { animate: false });
+        // @ts-ignore
+        newMapPoint = map.latLngToContainerPoint(mapLatLng);
+      } else if (map.setZoom && map.setCenter) { // Mapbox
+        // @ts-ignore
+        map.setCenter([mapLatLng.lng, mapLatLng.lat], { animate: false }); 
+        // @ts-ignore
+        map.setZoom(newZoom, { animate: false }); 
+        // @ts-ignore
+        newMapPoint = map.project([mapLatLng.lng, mapLatLng.lat]);
+      }
+
+      // 3. Compensar el desplazamiento de Konva para mantener la vista estable
+      if (newMapPoint) {
+          const deltaX = newMapPoint.x - mapPointerX;
+          const deltaY = newMapPoint.y - mapPointerY;
+          
+          stage.x(stage.x() - deltaX);
+          stage.y(stage.y() - deltaY);
+      }
+    }
+  }
+});
+
+let currentMapType = 'openstreet';  
+
+document.getElementById('toggle-map-btn').addEventListener('click', () => {
+  currentMapType = currentMapType === 'openstreet' ? 'mapbox' : 'openstreet';
+
+  const lat = map?.getCenter()?.lat || -31.417;
+  const lon = map?.getCenter()?.lng || -64.183;
+  const zoom = map?.getZoom() || 13;
+
+  initMap(lat, lon, zoom, currentMapType);
+
+  // 🔄 Reasignar eventos y referencias
+  if (map) {
+    setTimeout(() => {
+      setMapReferencePoints();
+      renderAllNodes(currentFilter);
+
+      if (map.on) { // solo Leaflet tiene esto
+        map.on('zoomend', updateReferencePointsAndNodes);
+        map.on('moveend', updateReferencePointsAndNodes);
+      }
+    }, 500);
   }
 });
 
@@ -120,12 +187,18 @@ function updateReferencePointsAndNodes() {
   updateNodesPositions(referencePoints);
 }
 
-// Resize
 window.addEventListener("resize", () => {
   stage.width(window.innerWidth - 320);
   stage.height(window.innerHeight - 40);
   updateReferencePointsAndNodes();
-  map?.invalidateSize();
+
+  if (!map) return;
+
+  if (currentMapType === "openstreet") {
+    map.invalidateSize();
+  } else if (currentMapType === "mapbox") {
+    map.resize();
+  }
 });
 
 // Filtros y vistas
@@ -156,7 +229,10 @@ function switchView(view) {
   } else if (view === "map") {
     document.querySelector('button[onclick="switchView(\'map\')"]').classList.add("active");
     document.getElementById("map-view").classList.add("active");
-    setTimeout(() => map?.invalidateSize({ animate: true }), 50);
+    setTimeout(() => {
+      if (currentMapType === "openstreet") map?.invalidateSize({ animate: true });
+      else if (currentMapType === "mapbox") map?.resize();
+    }, 50);
   }
 }
 

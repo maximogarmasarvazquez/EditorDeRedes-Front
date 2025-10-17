@@ -1,87 +1,107 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor Eléctrico con GPS</title>
-    <script src="https://cdn.jsdelivr.net/npm/konva@9.3.11/konva.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="css/styles.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor Eléctrico con GPS</title>
+
+  <link rel="icon" type="image/x-icon" href="./public/favicon.ico" />
+
+  <!-- Konva -->
+  <script src="https://cdn.jsdelivr.net/npm/konva@9.3.11/konva.min.js"></script>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Mapbox -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+
+  <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-    <!-- MENU LATERAL -->
-    <div id="menu">
-        <div class="logo">
-            <h2>EDITOR ELÉCTRICO CON GPS</h2>
-            <p>Sistema de georreferenciación de redes eléctricas</p>
-        </div>
-
-        <div>
-            <h3>Vistas</h3>
-            <div class="btn-group">
-                <button class="tab" onclick="switchView('editor')">📐 Editor de Red</button>
-                <button class="tab active" onclick="switchView('map')">🗺 Mapa GPS</button>
-            </div>
-        </div>
-
-        <div>
-            <h3>Herramientas</h3>
-            <div class="btn-group">
-                <button><span>🟠</span> Poste</button>
-                <button><span>🔵</span> Transformador</button>
-                <button><span>🔺</span> Seccionador</button>
-                <button><span>🔴</span> Subestación</button>
-                <button><span>🟢</span> Usuario</button>
-                <button class="btn-connect"><span>📏</span> Conectar</button>
-                <button class="btn-gps"><span>📍</span> Obtener GPS Actual</button>
-            </div>
-        </div>
-
-        <!-- FILTROS ABAJO -->
-        <div class="filtros">
-            <h3 >Filtros de Nodos</h3>
-            <div class="btn-group">
-                <button class="filter-btn sub active" onclick="toggleFilter('filter-subestaciones', this)">
-                    <span>🔴</span> Subestaciones
-                    <div class="checkbox">
-                     <span class="checkbox-indicator">✔</span>
-                     <input type="checkbox" id="filter-subestaciones" checked hidden>
-                    </div>
-                </button>
-                <button class="filter-btn poste active" onclick="toggleFilter('filter-postes', this)">
-                    <span>🟠</span> Postes
-                     <div class="checkbox">
-                         <span class="checkbox-indicator">✔</span>
-                        <input type="checkbox" id="filter-postes" checked hidden>
-                    </div>
-                </button>
-                <button class="filter-btn usuario active" onclick="toggleFilter('filter-usuarios', this)">
-                    <span>🟢</span> Usuarios
-                    <div class="checkbox">
-                         <span class="checkbox-indicator">✔</span>
-                        <input type="checkbox" id="filter-usuarios" checked hidden>
-                    </div>
-                </button>
-            </div>
-        </div>
-
-         <div class="btn-group">
-            <button class="btn-save" ><span>💾</span> Guardar Datos</button>
-            <button class="btn-export" ><span>🖼</span> Exportar PNG</button>
-            <button class="btn-export"><span>🌐</span> Exportar GeoJSON</button>
-            <!-- <button class="btn-export" ><span>🔄</span> Sincronizar con Mapa</button> -->
-        </div>
+  <!-- MENU LATERAL -->
+  <div id="menu">
+    <div class="logo">
+      <h2>EDITOR ELÉCTRICO CON GPS</h2>
+      <p>Sistema de georreferenciación de redes eléctricas</p>
     </div>
 
-    <!-- CONTENEDOR PRINCIPAL -->
-    <div id="main-container">
-        <div id="editor-view" class="view">
-            <div id="container"></div>
-            </div>
+    <div>
+      <h3>Vistas</h3>
+      <div class="btn-group">
+        <button class="tab" onclick="switchView('editor')">📐 Editor de Red</button>
+        <button class="tab active" onclick="switchView('map')">🗺 Mapa GPS</button>
+      </div>
+    </div>
 
-        <div id="map-view" class="view active">
-            <div id="map"></div>
+    <div>
+      <h3>Herramientas</h3>
+      <div class="btn-group">
+        <button><span>🟠</span> Poste</button>
+        <button><span>🔵</span> Transformador</button>
+        <button><span>🔺</span> Seccionador</button>
+        <button><span>🔴</span> Subestación</button>
+        <button><span>🟢</span> Usuario</button>
+        <button class="btn-connect"><span>📏</span> Conectar</button>
+        <button class="btn-gps"><span>📍</span> Obtener GPS Actual</button>
+      </div>
+    </div>
+
+    <!-- NUEVO: BOTÓN PARA CAMBIAR DE MAPA -->
+    <div>
+      <h3>Mapa base</h3>
+      <div class="btn-group">
+        <button id="toggle-map-btn" class="btn-export"><span>🗺️</span> Cambiar Mapa (OpenStreet → Mapbox 3D)</button>
+      </div>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="filtros">
+      <h3>Filtros de Nodos</h3>
+      <div class="btn-group">
+        <button class="filter-btn sub active" onclick="toggleFilter('filter-subestaciones', this)">
+          <span>🔴</span> Subestaciones
+          <div class="checkbox">
+            <span class="checkbox-indicator">✔</span>
+            <input type="checkbox" id="filter-subestaciones" checked hidden>
+          </div>
+        </button>
+        <button class="filter-btn poste active" onclick="toggleFilter('filter-postes', this)">
+          <span>🟠</span> Postes
+          <div class="checkbox">
+            <span class="checkbox-indicator">✔</span>
+            <input type="checkbox" id="filter-postes" checked hidden>
+          </div>
+        </button>
+        <button class="filter-btn usuario active" onclick="toggleFilter('filter-usuarios', this)">
+          <span>🟢</span> Usuarios
+          <div class="checkbox">
+            <span class="checkbox-indicator">✔</span>
+            <input type="checkbox" id="filter-usuarios" checked hidden>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn-save"><span>💾</span> Guardar Datos</button>
+      <button class="btn-export"><span>🖼</span> Exportar PNG</button>
+      <button class="btn-export"><span>🌐</span> Exportar GeoJSON</button>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <div id="main-container">
+    <div id="editor-view" class="view">
+      <div id="container"></div>
+    </div>
+
+    <div id="map-view" class="view active">
+      <div id="map"></div>
+    </div>
+
         <!-- </div>
           <div class="status-bar">
             <div class="connection-status">
