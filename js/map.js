@@ -51,15 +51,12 @@ export function initMap(lat, lon, zoom, type = "openstreet") {
 
   } else {
     // === OPENSTREETMAP (Leaflet) ===
-    // @ts-ignore
     map = L.map("map", { zoomAnimation: false }).setView([lat, lon], zoom);
 
-    // @ts-ignore
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map);
 
-    // @ts-ignore
     L.control.scale().addTo(map);
 
     setMapReferencePoints();
@@ -79,32 +76,26 @@ export function setMapReferencePoints() {
 
   if (currentMapType === "openstreet" && map.getBounds) {
     // Leaflet
-    // @ts-ignore
     const bounds = map.getBounds();
     const northLat = bounds.getNorth();
     const westLon = bounds.getWest();
     const southLat = bounds.getSouth();
     const eastLon = bounds.getEast();
 
-    // @ts-ignore
     const nwPoint = map.latLngToContainerPoint([northLat, westLon]);
-    // @ts-ignore
     const sePoint = map.latLngToContainerPoint([southLat, eastLon]);
 
     referencePoints.topLeft = { x: nwPoint.x, y: nwPoint.y, lat: northLat, lon: westLon };
     referencePoints.bottomRight = { x: sePoint.x, y: sePoint.y, lat: southLat, lon: eastLon };
   } else if (currentMapType === "mapbox" && map.getBounds) {
     // Mapbox (Corrección: [lon, lat] para project)
-    // @ts-ignore
     const bounds = map.getBounds();
     const northLat = bounds.getNorth();
     const westLon = bounds.getWest();
     const southLat = bounds.getSouth();
     const eastLon = bounds.getEast();
 
-    // @ts-ignore
     const nw = map.project([westLon, northLat]); 
-    // @ts-ignore
     const se = map.project([eastLon, southLat]); 
 
     referencePoints.topLeft = { x: nw.x, y: nw.y, lat: northLat, lon: westLon };
@@ -123,7 +114,6 @@ export function addNodeToMap(node) {
   // Eliminar marcador previo si existe
   if (mapMarkers.has(node._id)) {
     const existing = mapMarkers.get(node._id);
-    // @ts-ignore
     if (currentMapType === "openstreet") map.removeLayer(existing);
     else existing.remove();
     mapMarkers.delete(node._id);
@@ -133,7 +123,6 @@ export function addNodeToMap(node) {
 
   if (currentMapType === "openstreet") {
     // === Leaflet marker ===
-    // @ts-ignore
       marker = L.circleMarker([node.lat, node.lon], {
         radius: typeConfig.radius,
         color: "black",       
@@ -186,7 +175,6 @@ marker = new mapboxgl.Marker(el)
  */
 export function clearMapMarkers() {
   mapMarkers.forEach(marker => {
-    // @ts-ignore
     if (currentMapType === "openstreet") map.removeLayer(marker);
     else marker.remove();
   });
